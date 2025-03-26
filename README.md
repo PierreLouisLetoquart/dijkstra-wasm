@@ -21,3 +21,5 @@ Once the build process is complete, you can include the generated `pkg` folder i
 > [!IMPORTANT]
 > This implementation is in super alpha state and must be improved etc etc.
 
+> [!CAUTION]
+> The `examples/` folder is outdated!
