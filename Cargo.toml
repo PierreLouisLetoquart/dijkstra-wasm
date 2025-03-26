@@ -1,0 +1,24 @@
+[package]
+name = "dijkstra"
+version = "0.1.0"
+edition = "2024"
+description = "Dijkstra's algorithm in Rust optimized for WebAssembly"
+license = "MIT"
+repository = "unpublished yet"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = "s"
+
+[dependencies]
+ordered-float = { version = "5.0.0", features = ["serde"] }
+serde = { version = "1.0", features = ["derive"] }
+serde-wasm-bindgen = "0.6.5"
+serde_json = "1.0.140"
+wasm-bindgen = "0.2.100"
+
+[[example]]
+name = "basic"
+path = "examples/basic.rs"

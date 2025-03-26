@@ -1,0 +1,96 @@
+use std::collections::{BTreeMap, BTreeSet};
+use std::ops::Add;
+
+// Type alias for Graph
+pub type Graph<V, E> = BTreeMap<V, BTreeMap<V, E>>;
+
+// Add edge function to extend the Graph type with a method-like functionality
+pub trait GraphExt<V: Ord, E> {
+    fn add_edge(&mut self, from: V, to: V, weight: E);
+}
+
+impl<V: Ord + Copy, E: Copy> GraphExt<V, E> for Graph<V, E> {
+    fn add_edge(&mut self, from: V, to: V, weight: E) {
+        // Ensure the 'from' vertex exists in the graph
+        self.entry(from).or_insert_with(BTreeMap::new);
+
+        // Ensure the 'to' vertex exists in the graph
+        self.entry(to).or_insert_with(BTreeMap::new);
+
+        // Add the edge
+        self.get_mut(&from).unwrap().insert(to, weight);
+    }
+}
+
+// Stateless Dijkstra function
+pub fn dijkstra<V: Ord + Copy, E: Ord + Copy + Add<Output = E>>(
+    graph: &Graph<V, E>,
+    start: V,
+) -> BTreeMap<V, Option<(V, E)>> {
+    let mut ans = BTreeMap::new();
+    let mut prio = BTreeSet::new();
+
+    // start is the special case that doesn't have a predecessor
+    ans.insert(start, None);
+
+    // Handle case where start might not exist in the graph
+    if let Some(start_edges) = graph.get(&start) {
+        for (new, weight) in start_edges {
+            ans.insert(*new, Some((start, *weight)));
+            prio.insert((*weight, *new));
+        }
+    }
+
+    while let Some((path_weight, vertex)) = prio.pop_first() {
+        // Check if vertex exists in the graph
+        if let Some(vertex_edges) = graph.get(&vertex) {
+            for (next, weight) in vertex_edges {
+                let new_weight = path_weight + *weight;
+                match ans.get(next) {
+                    // if ans[next] is a lower dist than the alternative one, we do nothing
+                    Some(Some((_, dist_next))) if new_weight >= *dist_next => {}
+                    // if ans[next] is None then next is start and so the distance won't be changed
+                    Some(None) => {}
+                    // the new path is shorter, either new was not in ans or it was farther
+                    _ => {
+                        if let Some(Some((_, prev_weight))) =
+                            ans.insert(*next, Some((vertex, new_weight)))
+                        {
+                            prio.remove(&(prev_weight, *next));
+                        }
+                        prio.insert((new_weight, *next));
+                    }
+                }
+            }
+        }
+    }
+
+    ans
+}
+
+// Example usage in tests
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_graph_creation_and_dijkstra() {
+        // Create an empty graph
+        let mut g: Graph<char, i32> = BTreeMap::new();
+
+        // Add edges using the new method
+        g.add_edge('A', 'B', 4);
+        g.add_edge('A', 'C', 2);
+        g.add_edge('B', 'D', 3);
+        g.add_edge('C', 'B', 1);
+        g.add_edge('C', 'D', 5);
+
+        // Run Dijkstra's algorithm
+        let shortest_paths = dijkstra(&g, 'A');
+
+        // Verify some paths
+        assert_eq!(shortest_paths.get(&'B'), Some(&Some(('C', 3))));
+        assert_eq!(shortest_paths.get(&'C'), Some(&Some(('A', 2))));
+        assert_eq!(shortest_paths.get(&'D'), Some(&Some(('B', 6))));
+    }
+}
